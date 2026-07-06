@@ -1,0 +1,508 @@
+---
+title: "Lesson1.1"
+author: "Tran Phuong Thao"
+date: "2026-01-29"
+output: html_document
+---
+
+## Phân bố xác suất 
+
+Mỗi phân phối mà R hỗ trợ đều có bốn hàm.
+
+Tất cả chúng đều tuân theo cùng một nguyên tắc về cấu trúc tên, được tạo thành từ tên gốc của phân phối và tiền tố là một trong bốn chữ cái:
+
+-   p cho hàm phân phối tích lũy,
+
+-   d cho hàm mật độ hoặc hàm xác suất,
+
+-   q cho hàm lượng phân vị, nghịch đảo của hàm phân phối tích lũy,
+
+-   r là biến ngẫu nhiên có phân phối được chỉ định (bộ tạo giá trị ngẫu nhiên).
+
+| Phân bố | Hàm mật độ | Hàm phân bố | Mô phỏng |
+|:----------------:|:----------------:|:----------------:|:----------------:|
+| Chuẩn | dnorm(x, mean,sd) | pnorm(x, mean,sd) | rnorm(n,mean,sd) |
+| Nhị thức | dbinom(k,n,p) | pbinom(k,n,p) | rbinom(k,n,prob) |
+| Poisson | dpois(k,lambda) | ppois(q,lambda) | rpois(n,lambda) |
+| Uniform | dunif(x,min,max) | punif(q,min,max) | runif(n,min,max) |
+| Nhị thức âm | dnbinom(x,k,p) | pnbinom(q,k,p) | rnbinom(n,n,prob) |
+| Beta | dbeta(x,shape1,shape2) | pbeta(q,shape1,shape2) | rbeta(n,shape1,shape2) |
+| Khi bình phương | dchisq(x,df) | pchisq(q,df) | rchisq(n,df) |
+| Hình học | dgeom(x,p) | pgeom(q,p) | rgeom(n,prob) |
+| Mũ | dexp(x,rate) | pexp(q,rate) | rexp(n,rate) |
+| Student | dt(x,df) | pt(q,df) | rt(n,df) |
+| Fisher | df(x,df1,df2) | pf(q,df1,df2) | rf(n,df1,df2) |
+
+Các hàm hữu ích nhất để làm việc với các biến ngẫu nhiên liên tục là hàm “p” và hàm “q”, bởi vì mật độ được tính toán bởi hàm “d” chỉ có thể được sử dụng để tính toán xác suất thông qua tích phân và R không thực hiện tích phân. Mặt khác, trong các phân bố rời rạc, hàm "d" có ý nghĩa là xác suất mật độ $f(x) = P[X=x]$ và do đó hữu ích trong việc tính đoán xác suất.
+
+I. Mẫu ngẫu nhiên
+
+1.  Một trong những việc đầu tiên cần thực hiện là lấy mẫu ngẫu nhiên. R cung cấp hàm ***sample()*** để lấy mẫu từ các tập dữ liệu (đây là phương pháp lấy mẫu ngẫu nhiên đơn giản).
+
+    ```{r}
+    sample(6)
+    ```
+
+    ```{r}
+    sample(4:10)
+    ```
+
+    ```{r}
+    sample(1:40,5)
+    ```
+
+    ```{r Dạng mặc định}
+    sample(6,50)
+    ```
+
+    ```{r Lấy mẫu ngẫu nhiên có hoàn lại}
+    sample(6, 50, replace = TRUE)
+    ```
+
+    Cuối cùng, chúng ta có thể thiết lập xác suất cho tất cả các kết quả có thể xảy ra, mà không nhất thiết phải giống nhau.
+
+    Ví dụ, chúng ta có thể mô phỏng việc tung đồng xu không cân đối đồng chất với tần suất xuất hiện mặt ngửa cao hơn mặt sấp. Giả sử mặt ngửa xuất hiện nhiều gấp đôi mặt sấp. Khi đó, chúng ta đặt tham số $prob=c(2/3,1/3)$. Hãy xem kết quả trong danh sách sau (h nghĩa là “ngửa” và t nghĩa là “sấp”).
+
+    ```{r}
+    sample (c("h","t"),20, replace = TRUE ,prob=c(2/3,1/3))
+    ```
+
+    ```{r}
+    set.seed(3) 
+    sample(6)
+    ```
+
+    II\. Các phân bố rời rạc
+
+Ví dụ: Tung đồng xu 3 lần, ta có không gian mẫu như sau:
+
+$$
+S = \{HHH, HTH, THH, TTH, HHT, HTT, THT, TTT\}.
+$$
+
+Bây giờ, gọi $X$ là số mặt ngửa (H). Khi đó các kết quả có thể có của $X$ là $S_X = \{0,1,2,3\}$.
+
+Ta dễ dàng có bảng phân bố xác suất của $X$ như sau:
+
+| $x \in S_X$       | 0   | 1   | 2   | 3   | Total |
+|-------------------|-----|-----|-----|-----|-------|
+| $f_X(x) = P(X=x)$ | 1/8 | 3/8 | 3/8 | 1/8 | 1     |
+
+ 1. Các đặc trưng
+
+```{r}
+#Nhập dữ liệu
+x <- c(0,1,2,3)
+f <- c(1/8, 3/8, 3/8, 1/8)
+```
+
+```{r Tính kỳ vọng}
+mu <- sum(x*f)
+mu
+```
+
+```{r Tính phương sai}
+sigma2 <- sum((x-mu)^2 * f)
+sigma2
+```
+
+```{r Độ lệch tiêu chuẩn}
+sigma <- sqrt(sigma2)
+sigma
+```
+
+```{r Giá trị của hàm phân bố F_X}
+F <- cumsum(f)
+F
+```
+
+```{r Hàm phân bố}
+x <- c(4, 7, 9, 11, 12)
+ecdf(x)
+```
+
+```{r}
+plot(ecdf(x))
+```
+
+Đồ thị là của một hàm liên tục bên phải với các bước nhảy chính xác tại các vị trí được lưu trữ trong $x$. Không có giá trị lặp lại trong $x$ nên tất cả các bước nhảy đều bằng $1/5 = 0,2$.
+
+Với hàm mật độ thì không có hàm có sẵn nên thường ta cần thiết lập hàm theo định nghĩa.
+
+```{r Hàm mật độ}
+epdf <- function(x) function(t){sum(x %in% t)/length(x)}
+x <- c(0,0,1)
+epdf(x)(0) # should be 2/3
+```
+
+```{r Sử dụng hàm có sẵn}
+#install.packages(c("sfsmisc", "distr", "startupmsg", "distrEx"))
+library(distrEx)
+```
+
+```{r}
+X <- DiscreteDistribution(supp = 0:3, prob = c(1,3,3,1)/8)
+E(X); var(X); sd(X)
+```
+
+2.  Phân bố nhị thức
+    -   ***rbinom(n, p):*** Trong đó n là số lượng quan sát cần sinh, p là xác suất thành công.\
+        Hàm này dùng để sinh ra n biến ngẫu nhiên theo phân phối nhị thức với xác suất cho trước.
+
+    -   ***pbinom(x, n, p):*** Trong đó n là tổng số phép thử, p là xác suất thành công, x là giá trị cần tính xác suất.\
+        Dùng để tính **xác suất tích lũy** của biến ngẫu nhiên tuân theo phân phối nhị thức đến một giá trị cho trước, tức là tính \$P(X\\leq x) \$.
+
+    -   ***dbinom(x, n, p):*** Trong đó n là tổng số phép thử, p là xác suất thành công, x là giá trị cần tính xác suất.\
+        Hàm này dùng để tính **xác suất tại đúng một giá trị cụ thể**, tức là $P(X=x)$.
+
+    -   ***qbinom(prob, n, p):*** Trong đó prob là xác suất cho trước, n là tổng số phép thử, p là xác suất thành công trong một phép thử. Hàm này dùng để tìm **phân vị**: nếu biết \$P(X≤k)=prob \$ thì hàm sẽ tìm giá trị $k$.
+
+Ví dụ: Giả sử có 20 câu hỏi trắc nghiệm trong một bài kiểm tra. Mỗi câu có 5 đáp án, trong đó chỉ có 1 đáp án đúng. Hãy tìm xác suất để một học sinh trả lời **đúng không quá 6 câu**, nếu học sinh chọn đáp án hoàn toàn ngẫu nhiên cho mọi câu hỏi.
+
+```{r}
+dbinom (6 ,20 ,0.2)
+```
+
+```{r}
+dbinom (0 ,20 ,0.2)
+dbinom (1 ,20 ,0.2) 
+dbinom (2 ,20 ,0.2)
+dbinom (3 ,20 ,0.2) 
+dbinom (4 ,20 ,0.2) 
+dbinom (5 ,20 ,0.2)
+dbinom (6 ,20 ,0.2)
+```
+
+```{r}
+pbinom (6 ,20 ,0.2)
+```
+
+Bây giờ chúng ta hãy quay lại ví dụ trên. Sinh viên vượt qua kỳ thi thành công nếu trả lời đúng hơn 10 câu hỏi trong bài kiểm tra. Xác suất để sinh viên vượt qua kỳ thi nếu trả lời các câu hỏi một cách ngẫu nhiên là bao nhiêu?
+
+```{r}
+pbinom (10 ,20 ,0.2 , lower.tail=FALSE)
+```
+
+Ví dụ: Giả sử chúng ta phụ trách kiểm soát chất lượng cho một nhà máy. Chúng ta sản xuất $250$ sản phẩm mỗi ngày. Sản phẩm lỗi phải được làm lại. Chúng ta biết rằng tỷ lệ lỗi là $2\%$. Hãy mô phỏng xem chúng ta cần sửa chữa bao nhiêu sản phẩm mỗi ngày trong tuần này.
+
+```{r Đối với chuỗi một tuần}
+rbinom (7 ,250 ,0.02)
+```
+
+```{r}
+qbinom (0.2 ,30 ,0.8)
+```
+
+```{r}
+qbinom(seq (0.1 ,1 ,0.1) ,30 ,0.8)
+```
+
+3.  Phân bố Poisson
+    -   ***dpois(x, lambda):*** Dùng để tính **giá trị hàm khối xác suất** $P(X=x)$ của **phân phối Poisson** với tham số $\lambda$, trong đó tham số $\lambda$ được truyền vào dưới tên $l$.
+
+    -   ***ppois(x, l):*** Dùng để tính **hàm phân phối tích lũy** của một biến ngẫu nhiên tuân theo phân phối Poisson.\
+        Hàm trả về xác suất để biến ngẫu nhiên nhận giá trị **nhỏ hơn hoặc bằng** $x$, tức là $P(X≤x)$.
+
+        Tham số $l$ là tham số của phân phối.\
+        Nếu thêm đối số `lower.tail = FALSE` thì ta xét **đuôi phải** của phân phối, khi đó ta thu được xác suất $P(X>x)$.
+
+    -   ***rpois(k, l):*** Dùng để **sinh các số ngẫu nhiên** theo phân phối Poisson.\
+        Trong đó $k$ là số lượng giá trị ngẫu nhiên cần sinh, còn $l$là tham số của phân phối.
+
+    -   ***qpois(q,l):*** Dùng để **tìm phân vị (quantile)** của phân phối Poisson.\
+        Ở đây $q$ là một vector các mức phân vị cần tìm, còn $l$ là tham số của phân phối.
+
+[Ví dụ:]{.underline} Trên một con sông nào đó, lũ tràn bờ xảy ra trung bình **mỗi 100 năm một lần**. Hãy tính xác suất để trong một khoảng thời gian 100 năm có $k = 0, 1, 2, 3, 4, 5$ hoặc $6$ lần lũ tràn bờ.
+
+\
+Vì lũ tràn bờ xảy ra trung bình một lần trong 100 năm, ta có thể coi đây là **một sự kiện hiếm**, và giả sử số lần lũ tràn bờ tuân theo **phân phối Poisson**.\
+Để tính các xác suất cần tìm, ta sử dụng hàm `ppois()` với $x$ là vector các số nguyên từ $0$ đến $6$ và tham số $l = 1$(tương ứng với trung bình 1 lần lũ trong 100 năm).\
+Sau đó, ta nhập đoạn mã R tương ứng.
+
+```{r}
+x<-seq (0:6)
+dpois(x ,1)
+```
+
+[Ví dụ:]{.underline} Một nhân viên bán bảo hiểm nhân thọ bán trung bình 3 hợp đồng bảo hiểm nhân thọ mỗi tuần. Hãy tính xác suất để trong một tuần nhất định anh ta bán được một số hợp đồng.
+
+Giải pháp: “Một số hợp đồng” có nghĩa là “1 hoặc nhiều hợp đồng” và do đó chúng ta phải tính xác suất $P(X> 0) = 1 - P(X \leq 0)$. Chúng ta sẽ áp dụng hàm **ppois()** với đối số bổ sung **lower.tail** được đặt thành **FALSE**. Tham số của phân phối là $l = 3$ số hợp đồng được bán trong một tuần. Vì vậy, ta thu được
+
+```{r}
+ppois (0,3, lower.tail=FALSE)
+```
+
+```{r}
+1-dpois (0 ,3)
+```
+
+[Ví dụ:]{.underline} Một công ty sản xuất $300$ động cơ điện mỗi ngày. Xác suất một động cơ điện bị lỗi là $0,01$. Hãy tính số lượng động cơ bị lỗi được sản xuất mỗi ngày trong một tuần làm việc.
+
+Giải pháp: Số lượng động cơ bị lỗi trung bình trong sản lượng $300$ động cơ mỗi ngày là $\lambda = 0,01 \times 300 = 3$. Để tính số lượng động cơ bị lỗi hàng ngày, ta sử dụng hàm **rpois()** với các tham số $k=5$ ngày làm việc và $l=3$. Vì vậy, ta được
+
+```{r}
+rpois (5 ,3)
+```
+
+[Ví dụ:]{.underline} Xét một hệ thống máy tính với luồng công việc đến theo phân phối Poisson, trung bình là $2$ công việc mỗi phút. Số lượng công việc tối đa có thể đến trong một phút với độ chắc chắn $90\%$ là bao nhiêu?
+
+Giải pháp: Để tìm số lượng công việc đến tối đa với độ chắc chắn ít nhất $90\%$, ta cần tìm phân vị $90\%$. Ta có thể áp dụng hàm **qpois()** với các tham số $q=0,9$ và $l=2$ (số lượng công việc đến trung bình mỗi phút). Vì vậy, ta có:
+
+```{r}
+qpois (0.9 ,2)
+```
+
+III\. Phân bố liên tục
+
+Trong trường hợp biến ngẫu nhiên có các phân bố là những phân bố có sẵn trong R thì ta sử dụng các hàm tương tự như ở rời rạc. Còn trường hợp không có thì ta cần xây dựng các hàm mật độ và xác suất để tính toán.
+
+[Ví dụ:]{.underline} Cho $X$ có hàm mật độ $f(x) = 3x^2$ với $0 < x < 1$. Tìm $P(0.14 \leq X \leq 0.71)$.
+
+```{r}
+f <- function(x) 3*x^2
+integrate(f, lower = 0.14, upper = 0.71)
+```
+
+Tự kiểm tra lại với kết quả tính tay.
+
+[Ví dụ:]{.underline} Cho $X$ có hàm mật độ xác suất $f(x) = 3/x^4$ với $x > 1$. ta có thể tính tích phân hàm $g(x) = x*f(x) = 3/x^3$ từ $0$ đến vô cùng để có giá trị trung bình của $X$.
+
+```{r}
+g <- function(x) 3/x^3
+integrate(g, lower = 1, upper = Inf)
+```
+
+Bây giờ, ta sử dụng "distr" package có sẵn để tính toán như sau:
+
+```{r}
+f <- function(x) 3*x^2
+X <- AbscontDistribution(d = f, low1 = 0, up1 = 1)
+p(X)(0.71)- p(X)(0.14)
+```
+
+```{r}
+E(X); var(X)
+```
+
+**Phần liên quan đến các hàm có sẵn của các phân bố liên tục được coi như bài tập thực hành.**
+
+**IV. Các đồ thị và gói lệnh ggplot2**
+
+Để có cái nhìn trực quan về dữ liệu ta cần sử dụng và đánh giá cả trên các biểu đồ. Từ bây giờ ta sẽ sử dụng gói lệnh ggplot2 để thực hiện việc vẽ đồ thị.
+
+```{r}
+#install.packages(c("ggplot2","tidyverse"))
+library(ggplot2) #giúp vẽ biểu đồ
+library(tidyverse) #giúp biến đổi số liệu tốt hơn 
+```
+
+[Cấu trúc cơ bản của ggplot2]{.underline}
+
+Một câu lệnh đầy đủ để vẽ được một biểu đồ cơ bản trong ggplot2 là
+
+`ggplot(data, mapping) + geom_biểu đồ()`
+
+Trong đó:
+
+-   data: data frame chứa số liệu cần vẽ biểu đồ.
+
+-   mapping: đối tượng chứa các thông số về trục x, y, nhóm, màu sắc, kích thước,… được tạo ra từ aes().
+
+-   ggplot(data, mapping): nền cơ sở, từ đây sẽ dựng các biểu đồ khác lên.
+
+-   geom_biểuđồ(): loại biểu đồ cần vẽ. Ví dụ muốn vẽ biểu đồ tán xạ (biểu đồ điểm), ta dùng geom_point().
+
+Lưu ý: Ta có thể vẽ nhiều biểu đồ khác nhau cùng lúc trên cùng một nền cơ sở:
+
+`ggplot(data, mapping) + geom_point + geom_bar +...`
+
+[Ví dụ:]{.underline}
+
+```{r}
+head(mtcars)
+```
+
+```{r Biểu đồ tán xạ}
+ggplot(data = mtcars, mapping = aes(x = wt, y = mpg)) +
+  geom_point(aes(size = qsec))
+```
+
+Nếu số liệu không được khai báo trong mỗi hàm vẽ biểu đồ (geom_point(), geom_bar(),…) thì hàm sẽ lấy số liệu từ nền cơ sở ggplot().
+
+```{r Vẽ nhiều đồ thị trên cùng một nền cơ sở}
+ggplot(data = mtcars, mapping = aes(x = wt, y = mpg)) +
+  geom_point() +
+  geom_smooth(method="lm")
+```
+
+Lúc này `geom_point()` và `geom_smooth()` sẽ lấy số liệu của x, y trong `ggplot()`. Ta thấy có cả 2 loại biểu đồ trên cùng 1 nền cơ sở (cùng hệ trục tọa độ).
+
+1.  Biểu đồ phân tán
+
+    Biểu đồ phân tán (scatter plot):
+
+    -   Sử dụng các dấu chấm để thể hiện giá trị (điểm giao nhau) của hai biến số khác nhau.
+
+    -   Dùng để quan sát mối tương quan giữa 2 biến định lượng.
+
+    -   Trục hoành (trục X) mô tả biến độc lập. Trục tung (Y) mô tả biến phụ thuộc.
+
+```{r}
+ggplot(data=iris, mapping = aes(x = Sepal.Length, y = Sepal.Width)) +
+  geom_point()
+```
+
+Lưu ý: Không phải tất cả mối liên quan thể hiện trên biểu đồ phân tán đều là mối quan hệ nhân quả. Có thể do ảnh hưởng của các biến số khác khiến ta lầm tưởng sự tương quan khi khảo sát 2 biến số đơn độc.
+
+Ví dụ: Sử dụng bộ dữ liệu "mpg"
+
+```{r}
+mpg %>% 
+  dplyr::group_by(class) %>%
+  summarise(mean_cty = mean(cty), mean_hwy = mean(hwy)) %>% 
+  ggplot(aes(x = mean_cty, y = mean_hwy)) +
+  geom_point()
+```
+
+Mỗ điểm trên biểu đồ tương ứng với 1 loại xe (class). Như ta thấy mỗi loại xe sẽ có chỉ số **cty** và **hwy** trung bình khác nhau.
+
+Để thể hiện rõ hơn từng loại xe, ta thay thế `geom_point()` bằng `geom_label().`
+
+```{r}
+mpg %>% 
+  dplyr::group_by(class) %>%
+  summarise(mean_cty = mean(cty), mean_hwy = mean(hwy)) %>% 
+  ggplot(aes(x = mean_cty, y = mean_hwy)) +
+  geom_label(aes(label=class))
+```
+
+Biểu đồ này thể hiện chi tiết hơn biểu đồ 1, tuy nhiên có 2 giá trị bị chồng lên nhau, khiến ta không thể đọc được.
+
+Ta có thể thay thế bằng `ggrepel::geom_label_repel()` để khắc phục.
+
+```{r}
+#install.packages("ggrepel")
+```
+
+```{r}
+library(ggrepel)
+mpg %>% 
+  dplyr::group_by(class) %>%
+  summarise(mean_cty = mean(cty), mean_hwy = mean(hwy)) %>% 
+  ggplot(aes(x = mean_cty, y = mean_hwy)) +
+  geom_label_repel(aes(label=class))
+```
+
+2.  Biểu đồ histogram
+
+    Biểu đồ histogram dùng để mô tả phân bố của một biến liên tục (continuous).
+
+```{r}
+ggplot(data = diamonds) +
+  geom_histogram(aes(x = carat))
+```
+
+Ta chỉ cần cung cấp giá trị cho trục x, trục y sẽ được tự động tạo ra bằng các đếm số quan sát nằm trên từng khoảng của x (khoảng này là độ rộng của mỗi cột, còn gọi là ***binwidth***).
+
+Khi thay đổi ***binwidth***, tức là ta đang thay đổi số lượng quan sát của mỗi khoảng giá trị trên trục x. Khi đó hình dạng của histogram cũng sẽ thay đổi theo.
+
+```{r Thử binwidth = 1}
+ggplot(data = diamonds) +
+  geom_histogram(mapping = aes(x = carat), binwidth = 1)
+```
+
+```{r Thử binwidth = 0.5}
+ggplot(data = diamonds) +
+  geom_histogram(mapping = aes(x = carat), binwidth = 0.5)
+```
+
+Ngược với binwidth, ***bins*** là số khoảng chia trên trục x (số cột của histogram) Ví dụ khi ta muốn vẽ histogram chỉ có 4 cột.
+
+```{r}
+ggplot(data = diamonds) +
+  geom_histogram(mapping = aes(x = carat), bins = 4)
+```
+
+Tương tự biểu đồ cột, histogram có thể phân nhóm ra bằng tham số **fill.**
+
+```{r}
+ggplot(data = diamonds) +
+  geom_histogram(mapping = aes(x = price, fill = cut), binwidth = 1000)
+```
+
+Phân nhóm theo loại nhát cắt của các viên kim cương.
+
+3.  Biểu đồ cột (Bar chart)
+
+    Biểu đồ cột mô tả các nhóm trong một biến (***categorical***) theo một đại lượng khác, có thể là tần số của nhóm đó hoặc môt giá trị đo lường khác.
+
+```{r}
+ggplot(data = diamonds) +
+  geom_bar(mapping = aes(x = cut))
+```
+
+Ví dụ: thể hiện số lượng của từng nhóm của biến ***cut***. Ta dễ dàng thấy số lượng của các nhóm tăng dẩn từ trái qua phải. Nhóm ***ideal*** có số lượng nhiều nhất.
+
+```{r}
+ggplot(data = pressure) +
+  geom_col(mapping = aes(x = temperature, y = pressure))
+```
+
+Biểu đồ cho thấy áp suất đo được trên từng khoảng nhiệt độ khác nhau. Ta cũng dễ dàng nhân ra được xu hướng “Nhiệt độ (***temperature***) càng tăng thì áp suất (***pressure***) cũng tăng theo”.
+
+[Nhận xét:]{.underline} 2 ví dụ trên sử dụng 2 hàm khác nhau để vẽ biểu đồ cột là `geom_bar()` và `geom_col()`. `geom_bar()` không có tham số y vì trục y chính là số lượng của mỗi nhóm trên trục x.
+
+## **Các tham số khác của geom_bar() và geom_col()**
+
+2 hàm này có các thông số của aesthetics (`aes()`) sau:
+
+-   alpha: mức độ đậm nhạt
+
+-   color: màu sắc (của đường viền bên ngoài của mỗi cột)
+
+-   fill: màu sắc của cả cột
+
+-   width: kích thước (độ rộng) của cột
+
+3.1. Biểu đồ cột chồng
+
+Khi ta gắn tham số **`fill`** cho một biến phân nhóm, ta sẽ thu được biểu đồ cột chồng.
+
+```{r}
+ggplot(data = diamonds) +
+  geom_bar(mapping = aes(x = cut, fill = clarity))
+```
+
+3.2. Biểu đồ cột ghép
+
+Thêm vào biểu đồ cột chồng ở trên tham số `position = "dodge"`, ta thu được biểu đổ cột ghép.
+
+```{r}
+ggplot(data = diamonds) +
+  geom_bar(mapping = aes(x = cut, fill = clarity), position = "dodge")
+```
+
+*(Nếu đặt `position = "stack"`, ta lại thu được biểu đồ cột chồng như cũ)*
+
+3.3. Biểu đồ miền
+
+Tương tự biểu đồ cột chồng nhưng nếu ta muốn thay trục y bằng tỷ lệ %, nhằm kéo dài mỗi cột ra hết chiều dài trục y. Ta đặt `position = "fill"`
+
+```{r}
+ggplot(data = diamonds) +
+  geom_bar(mapping = aes(x = cut, fill = clarity), position = "fill")
+```
+
+3.4. Biểu đồ cột ngang
+
+Khi số lượng nhóm của ta quá nhiều gây khó khăn khi trình bày. Biểu đồ cột ngang là sự lựa chọn hợp lý nhất. Bạn chỉ cần thêm hàm `coord_flip()` là đủ.
+
+```{r}
+ggplot(data = diamonds) +
+  geom_bar(mapping = aes(x = cut, fill = clarity), position = "dodge") +
+  coord_flip()
+```
+
+4.  Biểu đồ quạt (pie chart)
+
+    Đây là biểu đồ không có ý nghĩa trong các báo cáo khoa học vì giá trị của nó không hơn gì một bảng số liệu nhỏ gọn, đơn giản. Ví vậy **ggplot** không hỗ trợ vẽ biểu đồ quạt. Tuy nhiên ta vẫn có mẹo để vẽ được. Bằng các thêm hàm `coord_polar()` vào trong biểu đồ cột.

@@ -1,0 +1,589 @@
+---
+title: "Buổi 4"
+author: "BMXSTK"
+date: "2026-03-28"
+output: html_document
+---
+
+## Ôn tập
+
+### Bài 1:
+
+Bộ dữ liệu $\textbf{ToothGrowth}$ trong R chứa dữ liệu từ một nghiên cứu đánh giá tác dụng của vitamin C đối với sự phát triển răng ở lợn Guinea. Thí nghiệm đã được thực hiện trên $60$ con lợn, trong đó mỗi con vật nhận được một trong ba liều vitamin C $(0.5, 1$ và $2 mg$/ngày) bằng một trong hai phương pháp phân phối: nước cam (OJ) hoặc axit ascorbic (VC). Cụ thể các biến trong bộ dữ liệu gồm:
+
+-   $\textbf{len}$: chiều dài răng,
+
+-   $\textbf{supp}$: loại vitamin cung cấp,
+
+-   $\textbf{dose}$: liều lượng vitamin
+
+Giả sử các biến của bộ dữ liệu đều tuân theo phân phối chuẩn, hãy thực hiện các yêu cầu dưới đây:
+
+1.  Đặt tên cho bộ dữ liệu trên là $\textbf{data}$ và in ra 15 dữ liệu đầu tiên. Vẽ biểu đồ hộp cho chiều dài răng lợn Guine sử dụng nước cam và axit ascorbic, đưa ra nhận xét.
+
+2.  Một nghiên cứu đánh giá tác dụng của vitamin C đối với sự phát triển răng ở lợn Guinea trước đây, tuyên bố rằng, độ biến động của chiều dài răng là $58 mm^2$. Viết hàm xây dựng hàm hợp lý cho chiều dài răng và đưa ra ước lượng hợp lý cực đại cho trung bình chiều dài răng lợn Guinea.
+
+3.  Với mức ý nghĩa $10\%$, hãy cho biết phương sai của chiều dài răng lợn sử dụng nước cam và axit ascorbic có như nhau hay không?
+
+4.  Sử dụng kết quả ý 3, hãy cho biết chiều dài răng trung bình lợn sử dụng nước cam có dài hơn sử dụng axit ascorbic hay không? (Với mức ý nghĩa $10\%$).
+
+5.  Hãy cho biết tỷ lệ lợn sử dụng liều lượng vitamin C $0.5mg/$ngày có chiều dài răng lớn hơn $25mm$ có lớn hơn $50\%$ hay không? (với mức ý nghĩa $1\%$).
+
+```{r 1.Nhập dữ liệu}
+data <- ToothGrowth
+head(data, 15)
+# Vẽ biểu đồ hộp
+boxplot(len ~ supp, data = data,
+        main = "So sánh chiều dài răng theo phương pháp cung cấp Vitamin C",
+        xlab = "Phương pháp cung cấp (OJ: Nước cam, VC: Axit Ascorbic)",
+        ylab = "Chiều dài răng (len)",
+        col = c("orange", "skyblue"),
+        border = "brown")
+```
+
+Nhận xét:
+
+-   Dữ liệu khá sạch, không có điểm ngoại lai (outlier).
+
+-   Trung vị (đường nằm ngang) của OJ cao hơn VC (khoảng 23 so với 16) cho thấy, nhìn chung, phương pháp sử dụng nước cam mang lại hiệu quả tăng trưởng chiều dài răng cao hơn so với dùng axit ascorbic nguyên chất.
+
+-   Toàn bộ khoảng biến thiên (Range): Nhóm VC có các đường "râu" (whiskers) kéo dài từ mức rất thấp (dưới 5) lên mức rất cao (trên 30), cho thấy nhóm VC có sự phân tán mạnh hơn về cả hai phía, tức là phản ứng của lợn Guinea với axit ascorbic là không đồng đều - có con phát triển rất kém nhưng cũng có con phát triển rất mạnh.
+
+```{r 2. Ước lượng HLCĐ}
+sigma2 <- 58  # Phương sai đã cho
+
+# Xây dựng hàm log-hợp lý (Log-Likelihood)
+log_likelihood <- function(mu, x, s2) {
+  n <- length(x)
+  res <- - (n/2) * log(2 * pi * s2) - (1/(2 * s2)) * sum((x - mu)^2)
+  return(res)
+}
+
+#MLE cho gí trị trung bình
+mle_result <- optimize(f = log_likelihood, 
+                       interval = c(min(data$len), max(data$len)), 
+                       x = data$len, 
+                       s2 = sigma2, 
+                       maximum = TRUE)
+
+# 4. In kết quả
+cat("Ước lượng hợp lý cực đại (MLE) cho trung bình mu là:", mle_result$maximum, "\n")
+cat("Trung bình mẫu tính trực tiếp (mean):", mean(data$len), "\n")
+```
+
+```{r 3. So sánh hai phương sai}
+#Lấy dữ liệu từng nhóm
+oj_len <- ToothGrowth$len[ToothGrowth$supp == "OJ"]
+vc_len <- ToothGrowth$len[ToothGrowth$supp == "VC"]
+#So sánh hai phương sai
+f_test <- var.test(oj_len, vc_len, conf.level = 0.90)
+f_test$p.value
+```
+
+Vì $p\_value = 0.233 > 0.1 = \alpha$ nên chưa đủ cơ sở để bác bỏ $H_0$.
+
+Vậy phương sai của chiều dài răng sử dụng hai phương pháp này là như nhau.
+
+```{r 4. So sánh hai giá trị trung bình}
+t_test_result <- t.test(oj_len, vc_len, 
+                        alternative = "greater", 
+                        var.equal = TRUE, #theo kết quả ý 3
+                        conf.level = 0.90)
+t_test_result$p.value
+```
+
+Vì $p\_value = 0.03 < 0.1 = \alpha$ nên bác bỏ $H_0$.
+
+Vậy chiều dài răng trung bình của nhóm OJ lớn hơn VC.
+
+```{r 5. tỷ lệ lợn sử dụng liều lượng vitamin C 0.5mg/ngày}
+# Lấy dữ liệu nhóm liều lượng 0.5 mg/ngày
+dose_05 <- ToothGrowth[ToothGrowth$dose == 0.5, ]
+
+# Đếm số lượng lợn trong nhóm liều lượng 0.5mg/ngày có chiều dài răng > 25mm
+success_count <- sum(dose_05$len > 25)
+total_count <- nrow(dose_05)
+
+#Kiểm định
+prop_result <- prop.test(x = success_count, 
+                         n = total_count, 
+                         p = 0.5, 
+                         alternative = "greater", 
+                         conf.level = 0.99,
+                         correct = TRUE) # Sử dụng hiệu chỉnh liên tục do n <30
+
+prop_result$p.value
+```
+
+Vì $p\_value = 0.9999892 > 0.01 = \alpha$ nên chưa đủ cơ sở bác bỏ $H_0$.
+
+Vậy tỷ lệ lợn sử dụng liều lượng vitamin C $0.5mg/$ngày có chiều dài răng lớn hơn $25mm$ không lớn hơn $50\%$.
+
+### Bài 2:
+
+Một công ty nông nghiệp đang nghiên cứu hiệu quả của các phương pháp bón phân đối với trọng lượng cây trồng. Công ty tiến hành một thí nghiệm và thu thập dữ liệu trọng lượng cây (đơn vị: gram) trong bộ dữ liệu $\textbf{PlantGrowth}$ của R, trong đó:
+
+-   $\textbf{weight}$: trọng lượng cây (gram),
+
+-   $\textbf{group}$: phương pháp xử lý (ctrl, trt1, trt2).
+
+Biết rằng một cây được xem là đạt chuẩn thương mại nếu trọng lượng lớn hơn $5.5$ gram.
+
+1.  Tạo bảng thông tin chưa thông tin của các $\textbf{group}$ gồm: số lượng dữ liệu từng phương pháp, trung bình trọng lượng từng phương pháp và độ lệch tiêu chuẩn trọng lượng của từng phương pháp. Và vẽ đồ thị *boxplot* so sánh phân phối trọng lượng giữa 3 phương pháp. Hãy kiểm tra xem trọng lượng của cây có phân bố chuẩn không? (với mức ý nghĩa $5\%$)
+
+2.  Tính ước lượng khoảng tin cậy cho tỷ lệ cây đạt chuẩn trong nhóm cây sử dụng phương pháp xử lý $\textbf{trt2}$, với độ tin cậy $95\%$.
+
+3.  Muốn sai số của ước lượng của ý $\textbf{2}$ là $0.2$ thì độ tin cậy của ước lượng là bao nhiêu
+
+4.  Với mức ý nghĩa $5\%$, hãy cho biết độ biến thiên trọng lượng của hai nhóm $\textbf{trt1}$ và $\textbf{trt2}$ có như nhau hay không?
+
+5.  Sử dụng kết quả ý $\textbf{4}$, hãy cho biết trọng lượng trung bình của nhóm $\textbf{trt1}$ có lớn hơn $\textbf{trt2}$ không?
+
+6.  Với mức ý nghĩa $5\%$, hãy cho biết độ biến động của trọng lượng có đồng nhất giữa 3 nhóm hay không?
+
+7.  Từ kết quả ý 6, hãy thực hiên phân tích ANOVA một nhân tố để kiểm tra xem có sự khác biệt về trọng lượng trung bình giữa 3 nhóm $(\textbf{ctrl}, \textbf{trt1}, \textbf{trt2})$ hay không? Nếu có sự khác biệt, hãy chỉ ra cặp nhóm nào có sự khác biệt rõ rệt nhất, và đưa ra ước lượng khoảng tin cậy cho độ chênh lệch trọng lượng trung bình của cặp nhóm này. (Với mức ý nghĩa $5\%$)
+
+```{r 1. Bảng thông tin và vẽ đồ thị}
+data1 <- PlantGrowth
+group_by(data1, group) %>%
+  summarise(
+    count = n(),
+    mean = mean(weight, na.rm = TRUE),
+    sd = sd(weight, na.rm = TRUE)
+  )
+ggboxplot(data1, x = "group", y = "weight", 
+          color = "group", palette = c("#00AFBB", "#E7B800", "#008000"),
+          order = c("ctrl", "trt1", "trt2"),
+          ylab = "Weight", xlab = "Groups")
+```
+
+Nhận xét:
+
+-   **Nhóm trt2** có trung vị cao nhất (khoảng 5.4), tiếp theo là **nhóm ctrl** (khoảng 5.15), và thấp nhất là **nhóm trt1** (khoảng 4.5). Phương pháp xử lý **trt2** có xu hướng làm tăng trọng lượng cây vượt trội so với nhóm đối chứng, trong khi phương pháp **trt1** lại khiến trọng lượng cây trung bình giảm đi.
+
+-   **Nhóm ctrl** có độ phân tán nội phần tư (chiều dài của hộp) rộng nhất, cho thấy trọng lượng của nhóm đối chứng biến thiên khá nhiều.
+
+-   **Nhóm trt1** có độ phân tán ở mức trung bình nhưng lại xuất hiện các giá trị bất thường.
+
+-   **Nhóm trt2** có độ phân tán thấp nhất (hộp ngắn nhất và râu cũng khá gọn), chứng tỏ phương pháp này mang lại hiệu quả rất ổn định và đồng đều.
+
+-   **Nhóm ctrl** có đường trung vị nằm gần phía trên của hộp, cho thấy phân phối bị lệch âmnhẹ (nhiều mẫu tập trung ở vùng trọng lượng cao). Trong khi, **nhóm trt2** tương đối đối xứng, đường trung vị nằm khá giữa hộp. Còn **nhóm trt1** có đường trung vị nằm giữa hộp, nhưng phần râu dưới dài hơn râu trên rất nhiều, cho thấy có những cây bị sụt giảm trọng lượng đáng kể.
+
+-   **Nhóm trt1** xuất hiện **2 giá trị ngoại lai** (2 chấm vàng) nằm cao hơn hẳn so với phần còn lại của nhóm. Điều này cho thấy mặc dù đa số cây ở **nhóm trt1** có trọng lượng thấp, vẫn có 2 cá thể phát triển tốt bất thường so với mức trung bình của nhóm đó. Còn **nhóm ctrl và trt2** không có giá trị ngoại lai nào.
+
+Như vậy, có vẻ hiệu quả nhất là **nhóm** **trt2**, không chỉ có trọng lượng trung bình cao nhất mà còn có sự ổn định nhất giữa các cây. Kém hiệu quả nhất là **nhóm** **trt1**. Trọng lượng trung bình sụt giảm so với **nhóm ctrl** và có sự phân hóa mạnh (xuất hiện ngoại lai). Còn **nhóm ctrl** nằm ở mức trung gian nhưng mức độ biến động trong tự nhiên khá cao.
+
+```{r}
+shapiro.test(data1$weight)
+```
+
+Vì $p\_value = 0.8915 > 0.05 =\alpha$ nên chưa đủ cơ sở để bác bỏ $H_0$.
+
+Vậy trọng lượng của cây có phân bố chuẩn hay không?
+
+```{r 2. Khoảng tin cậy cho tỷ lệ}
+#Lấy dữ liệu của nhóm trt2
+trt2_data <- data1$weight[data1$group == "trt2"]
+x <- sum(trt2_data >= 5.0) # Số cây đạt chuẩn
+n <- length(trt2_data)     # Tổng số cây nhóm trt2
+
+# Ước lượng khoảng tin cậy 90%
+prop_test <- prop.test(x, n, conf.level = 0.95)
+cat("Khoảng tin cậy 95% cho tỷ lệ cây đạt chuẩn:", prop_test$conf.int, "\n")
+```
+
+3.  Tính độ tin cậy
+
+    Công thức sai số của ước lượng khoảng tin cậy cho tỷ lệ là:
+
+    $$
+    \varepsilon = z_{\alpha/2}*\sqrt{\dfrac{\hat{p}(1-\hat{p})}{n}}.
+    $$
+
+    Khi đó,$
+    \Phi\bigg(\dfrac{\varepsilon \sqrt{n}}{\sqrt{\hat{p}(1-\hat{p})}}\bigg)=\Phi(z_{\alpha/2}) = 1-\dfrac{\alpha}{2}.
+    $
+
+    ```{r 3. Tính độ tin cậy}
+    p_hat <- x/n
+    epsilon <- 0.2
+    z_alpha_2 <- epsilon / sqrt((p_hat * (1 - p_hat)) / n)
+
+    # Tìm độ tin cậy tương ứng
+    confidence_level <- (1 - 2 * (1 - pnorm(z_alpha_2))) * 100
+    cat("Độ tin cậy của ước lượng là:", round(confidence_level, 2), "%\n")
+    ```
+
+```{r 4. So sánh độ biến thiên}
+#Lấy dữ liệu trt1
+trt1_data <- data1$weight[data1$group == "trt1"]
+
+# Kiểm định F
+f_test <- var.test(trt1_data, trt2_data, conf.level = 0.95)
+f_test$p.value
+```
+
+Vì $p\_value = 0.0968 > 0.02$ chưa đủ cơ sở bác bỏ $H_0$.
+
+Vậy độ biến thiên của hai nhóm trt1 và trt2 như nhau.
+
+```{r 5. So sánh hai giá trị trung bình}
+t_test <- t.test(trt1_data, trt2_data, 
+                 alternative = "greater", 
+                 var.equal = TRUE, #do kết quả ý 4
+                 conf.level = 0.90)
+t_test$p.value
+```
+
+Vì $p\_value = 0.9962 > 0.02$ chưa đủ cơ sở bác bỏ $H_0$.
+
+Vậy trọng lượng trung bình của nhóm $\textbf{trt1}$ không lớn hơn $\textbf{trt2}$.
+
+```{r 6. So sánh nhiều phương sai}
+bartlett.test(weight ~ group, data = data1)
+```
+
+Vì $p\_value = 0.2371 > 0.05 =\alpha$ nên chưa đủ cơ sở bác bỏ $H_0$.
+
+Vậy các nhóm có cùng phương sai trọng lượng.
+
+```{r 7. Phân tích Anova một nhân tố}
+anova_model <- aov(weight ~ group, data = data1)
+summary(anova_model)
+```
+
+Vì $p\_value = 0.0159<0.5 =\alpha$ nên bác bỏ $H_0$.
+
+Vậy trung bình trọng lượng của 3 nhóm có sự khác biệt
+
+```{r}
+tukey_result <- TukeyHSD(anova_model, conf.level = 0.95)
+tukey_result
+```
+
+Cặp có $p\_adj$ nhỏ nhất là cặp có khác biệt nhất nên cặp **trt1-trt2** thường có sự khác biệt rõ rệt nhất trong bộ dữ liệu này.
+
+```{r}
+f_test1 <- var.test(trt1_data, trt2_data, conf.level = 0.95)
+f_test1$p.value
+```
+
+```{r}
+conf_interval <- t.test(trt1_data, trt2_data, var.equal = TRUE, conf.level = 0.95)
+cat("Khoảng tin cậy cho độ chênh lệch trung bình trọng lượng của hai nhóm trt1 và trt2 là:", conf_interval$conf.int, "\n")
+```
+
+### Bài 3:
+
+Một viện nghiên cứu kinh tế phân tích các chỉ số kinh tế của Hoa Kỳ dựa trên bộ dữ liệu $\textbf{economics}$ trong $\textbf{ggplot2}$ của R gồm $\textbf{574}$ quan sát theo tháng từ năm 1967 đến 2015 với các biến:
+
+-   $\textbf{date}$: thời gian quan sát,
+
+-   $\textbf{pce}$: chi têu tiêu dùng cá nhân (\$),
+
+-   $\textbf{pop}$: dân số,
+
+-   $\textbf{psavert}$: tỷ lệ tiết kiệm cá nhân (%),
+
+-   $\textbf{uempmed}$: thời gian thất nghiệp trung bình (tuần),
+
+-   $\textbf{unemploy}$: số người thất nghiệp.
+
+Sử dụng phần mềm R hãy thực hiện các yêu cầu dưới đây:
+
+1.  Tạo thêm hai biến dưới vào bộ dữ liệu $\textbf{economics}$ và đặt tên bộ dữ liệu mới này là $\textbf{data}$.
+
+-   $\textbf{period}$ gồm 2 mức: $20th\_cer$ (thế kỷ XX) và $21th\_cer$ (thế kỷ XXI).
+
+-   $\textbf{Uemp_Level}$ (mức độ thất nghiệp trung bình) gồm: $Low , Med, High$ (chia dự vào biến $uempmed$ theo phân vị $33\%$ và $66\%$).
+
+2.  Giả sử thời gian thất nghiệp trung bình (uempmed) tuân theo phân phối Poisson với tham số $\lambda$. Viết hàm log-hợp lý cho tham số $\lambda$ dựa trên mẫu dữ liệu. Tìm ước lượng hợp lý cực đại cho thời gian thất nghiệp trung bình của toàn bộ giai đoạn. So sánh kết quả này với trung bình mẫu tính bằng phương pháp thông thường.
+3.  Viện nghiên cứu cho rằng tỷ lệ số tháng có số người thất nghiệp (unemploy) vượt quá 10 triệu người là lớn hơn $20\%$. Hãy kiểm định tuyên bố này với $\alpha=0.01$.
+4.  Kiểm tra xem tỷ lệ các tháng có chi tiêu (pce) tăng trưởng dương có đồng nhất giữa 3 nhóm thời gian thất nghiệp trên hay không? (với mức ý nghĩa $5\%$)
+5.  Viện nghiên cứu muốn tìm hiểu sự thay đổi trong hành vi tiết kiệm của người dân Hoa Kỳ qua các thời kỳ lịch sử và trong các điều kiện thị trường lao động khác nhau. Với mức ý nghĩa $2\%$, giả sử cả 3 nhóm mức độ thất nghiệp có tỷ lệ tiết kiệm cá nhân cùng phương sai, hãy cho biết tỷ lệ tiết kiệm cá nhân có chịu ảnh hưởng bởi giai đoạn lịch sử ($\textbf{period}$) và mức độ thất nghiệp ($\textbf{Uemp_Level}$) hay không? Đưa ra nhận xét về hành vi bằng biểu đồ.
+
+```{r}
+library(ggplot2)
+library(dplyr)
+library(car)
+```
+
+```{r 1. Xử lý dữ liệu}
+#Thêm biến vào dữ liệu
+data <- economics %>%
+  mutate(
+    # Tạo biến period
+    year = as.numeric(format(date, "%Y")),
+    period = as.factor(ifelse(year < 2000, "20th_cer", "21st_cer")),
+    
+    # Tạo biến Uemp_Level dựa trên phân vị 33% và 66% của uempmed
+    Uemp_Level = cut(uempmed, 
+                     breaks = quantile(uempmed, probs = c(0, 0.33, 0.66, 1)), 
+                     labels = c("Low", "Med", "High"), 
+                     include.lowest = TRUE)
+  )
+head(data)
+```
+
+```{r 2. MLE cho \lambda}
+# Xử lý dữ liệu uempmed (làm tròn vì Poisson dùng cho số nguyên)
+x <- round(data$uempmed)
+n <- length(x)
+
+# Hàm log-hợp lý
+log_likelihood <- function(lambda, x) {
+  res <- sum(x * log(lambda) - lambda - log(factorial(x)))
+  return(res)
+}
+
+# Tìm MLE cho lambda
+mle_result <- optimize(f = log_likelihood, interval = c(0, 100), x = x, maximum = TRUE)
+
+cat("Ước lượng MLE cho lambda:", mle_result$maximum, "\n")
+cat("Trung bình mẫu thông thường:", mean(x), "\n")
+```
+
+```{r 3. Kiểm định tỷ lệ}
+success <- sum(data$unemploy > 10000) #đếm số tháng có số người thất nghiệp hơn 10M người, đơn vị của biến này là nghìn người
+total <- nrow(data)
+
+prop_test <- prop.test(x = success, n = total, p = 0.2, 
+                       alternative = "greater", conf.level = 0.99)
+prop_test$p.value
+```
+
+Vì $p\_value = 0.99888 > 0.01 = \alpha$ nên chưa đủ cơ sở bác bỏ $H_0$.
+
+Vậy tỷ lệ số tháng có số người thất nghiệp (unemploy) vượt quá 10 triệu người không lớn hơn $20\%$.
+
+```{r 4. So sánh nhiều tỷ lệ}
+# Tạo biến pce_growth: TRUE nếu tháng này cao hơn tháng trước
+data1 <- data %>%
+  mutate(pce_growth = c(NA, diff(pce)) > 0)
+
+# Lập bảng tần suất
+table_growth <- table(data1$Uemp_Level, data1$pce_growth)
+
+# Kiểm định Chi-square
+chisq_test <- chisq.test(table_growth)
+chisq_test
+```
+
+Vì $p\_value = 0.6401 > 0.05 =\alpha$ nên chưa đủ cơ sở bác bỏ $H_0$.
+
+Vậy tỷ lệ tăng trưởng **pce** đồng nhất giữa các mức thất nghiệp.
+
+```{r 5. ANOVA 2 nhân tố}
+anova_model <- aov(psavert ~ period * Uemp_Level, data = data)
+summary(anova_model)
+```
+
+Nhận xét:
+
+-   period có $p\_value < 2e-16 < 0.02 = \alpha$ nên giai đoạn có ảnh hưởng đến tỷ lệ tiết kiệm cá nhân.
+
+-   Uemp_Level có $p\_value =2.133e-09 < 0.02 = \alpha$ nên mức độ thất nghiệp có ảnh hưởng đến tỷ lệ tiết kiệm cá nhân.
+
+-   **period:Uemp_Level** có $p\_value = 0.0067 < 0.02 = \alpha$ nên có sự tương tác.
+
+```{r}
+# Trực quan hóa để đưa ra nhận xét về hành vi
+interaction.plot(data$Uemp_Level, data$period, data$psavert,
+                 col = c("blue", "red"), lwd = 2,
+                 main = "Tương tác giữa Giai đoạn và Mức thất nghiệp lên Tiết kiệm",
+                 xlab = "Mức độ thất nghiệp", ylab = "Trung bình tỷ lệ tiết kiệm (%)")
+```
+
+Dựa theo period:Uemp_Level và biểu đồ trên, ta có thể thấy, tác động của thất nghiệp lên việc tiết kiệm ở thế kỷ 20 khác với thế kỷ 21 (hai đường song song)
+
+### Bài 4.
+
+Một công ty nghiên cứu thị trường bất động sản muốn khảo sát đặc điểm của các căn nhà trong bộ dữ liệu $\textbf{HousePrices}$ trong $\textbf{AER}$ của R, chứa các biến quan trọng gồm:
+
+-   $\textbf{price}$: giá bán của căn nhà,
+
+-   $\textbf{lotsize}$: diện tích đất,
+
+-   $\textbf{bedrooms}$: số phòng ngủ,
+
+-   $\textbf{bathrooms}$: số phòng tắm,
+
+-   $\textbf{stories}$: số tầng của căn nhà,
+
+-   $\textbf{aircon}$: nhà có điều hòa hay không.
+
+Giả sử giá bán của căn nhà tuân theo phân bố chuẩn.
+
+1.  Tạo thêm hai biến dưới đây và thêm vào bộ dữ liệu $\textbf{HousePrices}$, đặt tên bộ dữu liệu mới này là $\textbf{data3}$, in ra một phần đầu của bộ dữ liệu này.
+
+    -   $\textbf{Size\_Group}$: Chia $\textbf{lotsize}$ thành 3 mức: Small (dưới 4000), Medium (4000 - 7000), Large (trên 7000).
+
+    -   $\textbf{Bed\_Cat}$: Nhóm số phòng ngủ thành 2orless ($\leq 2$) và 3ormore ($\geq 3$).
+
+2.  Công ty muốn biết liệu việc có điều hòa ($\textbf{aircon}$) có ảnh hưởng đến sự biến động và mức giá trung bình của căn nhà hay không.
+
+    -   Với mức ý nghĩa $2\%$, hãy kiểm tra xem độ biến động của giá nhà giữa nhóm có điều hòa và không có điều hòa có như nhau hay không?
+
+    -   Dựa trên kết quả kiểm định phương sai ở trên, hãy kết luận xem giá nhà trung bình của nhóm không điều hòa có thấp hơn nhóm có điều hòa hay không?
+
+3.  Kiểm tra xem tỷ lệ nhà có điều hòa ($\textbf{airco}$) có đồng nhất giữa 3 nhóm diện tích đất ($\textbf{Size_Group}$) hay không? (Với mức ý nghĩa $2\%$)
+
+4.  Hãy kiểm tra tính đồng nhất về phương sai của giá nhà giữa 3 nhóm $\textbf{Size_Group}$. (Với mức ý nghĩa $5\%$)
+
+5.  Với ý nghĩa $2\%$, hãy kiểm tra xem giá bán nhà trung bình của căn nhà có diện tích mức small và số phòng ngủ từ 3 phòng trở lên có dưới $50,000\$$.
+
+```{r}
+library(AER)
+library(dplyr)
+library(car)
+```
+
+```{r 1. Nhập dữ liệu}
+data3 <- HousePrices %>%
+  mutate(
+    # Biến Size_Group
+    Size_Group = cut(lotsize, 
+                     breaks = c(0, 4000, 7000, Inf), 
+                     labels = c("Small", "Medium", "Large"), 
+                     include.lowest = TRUE),
+    # Biến Bed_Cat
+    Bed_Cat = factor(ifelse(bedrooms <= 2, "2orless", "3ormore"))
+  )
+head(data3)
+```
+
+```{r 2. Kiểm định hai tổng thể}
+var_test <- var.test(price ~ aircon, data = data3, conf.level = 0.98)
+var_test$p.value
+```
+
+Vì $p\_value = 5.06556e-06 < 0.02 = \alpha$ nên bác bỏ $H_0$.
+
+Vậy hai nhóm không cùng phương sai giá bán nhà.
+
+```{r}
+t_test <- t.test(price ~ aircon, data = data3, 
+                 alternative = "less", 
+                 var.equal = FALSE,
+                 conf.level = 0.98)
+t_test
+```
+
+Vì $p\_value < 2.2e-16 < 0.02 = \alpha$ nên bác bỏ $H_0$.
+
+Vậy giá nhà trung bình của nhóm không điều hòa thấp hơn nhóm có điều hòa.
+
+```{r 3. Kiểm định nhiều tỷ lệ}
+table_aircon_size <- table(data3$Size_Group, data3$aircon)
+chisq_test <- chisq.test(table_aircon_size)
+chisq_test$p.value
+```
+
+Vì $p\_value = 1.169e-10 < 0.02 = \alpha$ nên bác bỏ $H_0$.
+
+Vậy tỷ lệ giá bán nhà ở các nhóm không như nhau.
+
+```{r 4. Kiểm định nhiều phương sai}
+# Kiểm định Bartlett
+bartlett_test <- bartlett.test(price ~ Size_Group, data = data3)
+bartlett_test$p.value
+```
+
+Vì $p\_value = 7.059e-20 < 0.05 = \alpha$ nên bác bỏ $H_0$.
+
+Vậy các nhóm không cùng phương sai giá bán nhà.
+
+```{r 5. Kiểm định 1 tổng thể}
+# Lọc nhóm dữ liệu mục tiêu
+target_group <- data3 %>% 
+  filter(Size_Group == "Small", Bed_Cat == "3ormore")
+
+test_50k <- t.test(target_group$price, mu = 50000, 
+                   alternative = "less", 
+                   conf.level = 0.98)
+test_50k$p.value
+```
+
+Vì $p\_value = 0.99962 > 0.02 = \alpha$ nên chưa đủ cơ sở bác bỏ $H_0$.
+
+Vậy giá bán nhà trung bình của căn nhà có diện tích mức small và số phòng ngủ từ 3 phòng trở lên không dưới $50,000\$$.
+
+### Bài 5.
+
+Một xưởng sản xuất muốn kiểm tra độ bền của chi tiết in 3D dựa trên 2 loại nhựa (A, B) và 2 mức nhiệt độ in (Thấp, Cao). Dữ liệu thu được từ 15 mẫu thử bao gồm: Loại nhựa, Nhiệt độ, Độ dày lớp in, Thời gian in và Độ bền.
+
+![](Desktop/Ảnh màn hình 2026-03-28 lúc 21.30.18.png)
+
+1.  Nhập bảng dữ liệu vào R thành một data.frame, đặt tên là $\textbf{data_3d}$ và in ra một phần đầu của $\textbf{data_3d}$.
+
+2.  Kiểm tra xem biến độ dày và độ bền có phân bố chuẩn không? (Với mức ý nghĩa $2\%$)
+
+3.  Sử dụng kết quả ý $\textbf{2}$, chia bộ dữ liệu **data_3d** hành các nhóm theo loại nhựa và nhiệt độ, hãy kiểm tra xem phương sai độ bền của các nhóm có như nhau không? (Với mức ý nghĩa $2\%$)
+
+4.  Dựa vào kết quả ý $\textbf{3}$, hãy sử dụng phân tích ANOVA hai nhân tố để đánh giá ảnh hưởng của loại nhựa và nhiệt độ lên độ bền của tấm in. (Với mức ý nghĩa $2\%$)
+
+```{r 1. Nhập dữ liệu}
+data_3d <- data.frame(
+  STT = 1:15,
+  Loai_Nhua = factor(c(rep("Nhựa_A", 7), rep("Nhựa_B", 8))),
+  Nhiet_Do = factor(c("Thấp", "Thấp", "Thấp", "Cao", "Cao", "Cao", "Cao", 
+                      "Thấp", "Thấp", "Thấp", "Thấp", "Cao", "Cao", "Cao", "Cao")),
+  Do_Day = c(0.189, 0.205, 0.198, 0.212, 0.201, 0.195, 0.208, 
+             0.215, 0.192, 0.203, 0.197, 0.210, 0.188, 0.202, 0.206),
+  Thoi_Gian = c(42.1, 46.5, 44.2, 48.3, 45.9, 43.7, 47.1, 
+                49.2, 41.8, 45.5, 44.9, 47.8, 40.5, 46.2, 46.9),
+  Do_Ben = c(48.87, 51.24, 49.89, 54.12, 56.45, 55.08, 54.35, 
+             47.56, 48.92, 46.12, 49.40, 68.45, 71.20, 69.88, 70.47)
+)
+head(data_3d)
+```
+
+```{r 2. Kiểm tra phân bố chuẩn}
+shapiro.test(data_3d$Do_Day)
+shapiro.test(data_3d$Do_Ben)
+```
+
+```{r So sánh hai phương sai}
+data_3d$Group <- interaction(data_3d$Loai_Nhua, data_3d$Nhiet_Do)
+bartlett_result <- bartlett.test(Do_Ben ~ Group, data = data_3d)
+bartlett_result
+```
+
+```{r 4. ANOVA 2 nhân tố}
+model_2way <- aov(Do_Ben ~ Loai_Nhua * Nhiet_Do, data = data_3d)
+summary(model_2way)
+```
+
+Các $p\_value$ đều nhỏ hơn $\alpha$ nên có thể nói các biến loại nhựa, nhiệt độ đều có ảnh hưởng tới độ dày tấm in. Có sự tương tác mạnh giữa Loại nhựa và Nhiệt độ. Điều này có nghĩa là tác động của nhiệt độ lên nhựa A và nhựa B là **không giống nhau**.
+
+```{r}
+# Kiểm định Tukey HSD
+tukey_result <- TukeyHSD(model_2way)
+tukey_result
+```
+
+-   Cặp **(Nhựa B - Cao)** khác biệt so với tất cả các nhóm còn lại $(p<0.001)$.
+
+-   Không có sự khác biệt giữa Nhựa A - Thấp và Nhựa B - Thấp $(p>0.05)$.
+
+```{r}
+# Vẽ biểu đồ tương tác
+interaction.plot(x.factor = data_3d$Nhiet_Do,     # Trục X
+                 trace.factor = data_3d$Loai_Nhua, # Đường kẻ đại diện cho từng loại nhựa
+                 response = data_3d$Do_Ben,        # Biến phụ thuộc
+                 fun = mean,                       # Tính giá trị trung bình
+                 type = "b",                       # Vẽ cả điểm và đường
+                 col = c("red", "blue"),           # Màu sắc
+                 pch = c(19, 17),                  # Hình dạng điểm
+                 fixed = TRUE,                     # Giữ nguyên thứ tự legend
+                 leg.bty = "o",
+                 main = "Biểu đồ tương tác: Loại nhựa và Nhiệt độ",
+                 xlab = "Nhiệt độ in",
+                 ylab = "Độ bền trung bình (N/mm2)")
+```
+
+-   **Đường biểu diễn của Nhựa A:**Độ bền tăng nhẹ và ổn định khi tăng nhiệt độ (từ khoảng $50$ lên $55 N/mm^2$).
+
+-   **Đường biểu diễn của Nhựa B:** Độ bền có sự "đột biến" mạnh mẽ. Ở nhiệt độ thấp, nhựa B kém bền hơn nhựa A (khoảng $48 N/mm^2$), nhưng ở nhiệt độ cao, nó vọt lên dẫn đầu (khoảng $70N/mm^2$).
+
+Như vậy, Nếu xưởng sản xuất có thể duy trì nhiệt độ in ở mức **Cao**, thì **Nhựa B** là lựa chọn tối ưu. Tuy nhiên, nếu điều kiện sản xuất chỉ cho phép nhiệt độ **Thấp**, thì nên dùng **Nhựa A** để đảm bảo độ bền tốt hơn.

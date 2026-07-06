@@ -1,0 +1,436 @@
+---
+title: "Lesson1.2"
+author: "BM XSTK"
+date: "2026-01-29"
+output: html_document
+---
+
+## A. Phân bố nhiều chiều
+
+Phân phối nhiều chiều được thiết kế để mô tả phân phối xác suất của nhiều biến ngẫu nhiên cùng một lúc. Vì các biến thường tương quan với nhau, việc khám phá chúng riêng lẻ chỉ cung cấp cái nhìn hạn chế.
+
+### 1. Cấu trúc của dữ liệu nhiều biến
+
+Dưới dạng hình chữ nhật được sắp xếp theo hàng và cột
+
+```{r Đọc dữ liệu}
+wine <- read.table("http://archive.ics.uci.edu/ml/machine-learning-databases/wine/wine.data", sep = ",")
+
+# Print the first four entries
+head(wine, n = 4)
+```
+
+```{r Xác định số chiều của dữ liệu}
+dim(wine)
+```
+
+```{r}
+names(wine)
+```
+
+```{r Đặt lại tên các biến}
+colnames(wine) <- c('Type', 'Alcohol', 'Malic', 'Ash', 'Alcalinity', 'Magnesium', 'Phenols', 'Flavanoids', 'Nonflavanoids','Proanthocyanins', 'Color', 'Hue', 'Dilution', 'Proline')
+          
+# Check the new column names
+names(wine)
+```
+
+```{r Check loại dữ liệu}
+str(wine)
+```
+
+```{r}
+# Change the Type variable data type
+wine$Type <- as.factor(wine$Type)
+
+# Check data type/structure again
+str(wine)
+```
+
+### 2. Véc-tơ kỳ vọng và ma trận hiệp phương sai
+
+-   Đối với dữ liệu nhiều chiều, giá trị trung bình xác định vị trí của phân phối trong một không gian nhiều chiều.
+
+-   Phương sai-hiệp phương sai đo lường sự lan truyền của dữ liệu đa biến theo nhiều hướng.
+
+```{r Tính kỳ vọng của các biến Calculate the mean of the Alcohol, Malic, Ash, và Alcalinity}
+colMeans(wine[, 2:5])
+```
+
+```{r Tính kỳ vọng của các biến cho từng loại rượu}
+by(wine[2:5], wine$Type, colMeans)
+```
+
+```{r Tính phương sai}
+var.wine <- var(wine[2:5])
+round(var.wine, 2)
+```
+
+```{r}
+#install.packages("corrplot")
+library(corrplot)
+```
+
+```{r Tính ma trận tương quan}
+cor.wine <- cor(wine[, 2:5])
+round(cor.wine, 2)
+```
+
+```{r Đồ thị tương quan}
+corrplot(cor.wine, method = "ellipse")
+```
+
+### 3. Vẽ biểu đồ dữ liệu đa biến
+
+```{r}
+library(lattice)
+# Scatter plot matrix using the base R plot function
+pairs(wine[,2:5])
+```
+
+```{r}
+# Scatter plot matrix colored by groups
+splom( ~ wine[,2:5],  pch = 16, col = wine$Type)
+```
+
+```{r}
+#install.packages(c("patchwork", "ggstats", "GGally"))
+library(ggplot2)
+library(GGally)
+```
+
+```{r}
+# Color the points by wine type 
+wine.gg <- ggpairs(data = wine, mapping = aes(color = Type), columns = 2:5)
+wine.gg
+```
+
+### 5. Phân bố chuẩn nhiều chiều
+
+Nó là sự khái quát hóa của chuẩn đơn biến và được xác định bởi ma trận hiệp phương sai phương sai và vectơ kỳ vọng. Ngay cả khi tất cả các biến riêng lẻ tuân theo một chuẩn đơn biến, phân phối chung có thể không phải là một chuẩn đa biến.
+
+```{r}
+#install.packages("mvtnorm")
+library(mvtnorm)
+```
+
+```{r}
+mu.sim <- c(2, -2, 1)
+sigma.sim <- matrix(data = c(9,5,5,5,5,3,5,3,4), nrow = 3)
+# Generate 100 bivariate normal samples
+multnorm.sample <- rmvnorm(n = 100, mean = mu.sim, sigma = sigma.sim)
+
+# View the first 6 samples
+head(multnorm.sample)
+```
+
+```{r}
+ggpairs(data.frame(multnorm.sample))
+```
+
+### 6. Kiểm tra tính chuẩn của dữ liệu nhiều chiều
+
+-   Bước 1: kiểm tra từng biến trong véc-tơ ngẫu nhiên có phân bố chuẩn không? Nếu tồn tại 1 biến không có phân bố chuẩn thì kết luận luôn véc-tơ không có phân bố chuẩn nhiều chiều. Trường hợp còn lại chuyển sang bước 2.
+
+-   Bước 2: Sử dụng khoảng cách Mahalanois để kiểm tra phân bố chuẩn đồng thời của dữ liệu.
+
+```{r}
+candy <- read.table("~/Downloads/PTTKNC - 2023-2024/candy.txt", header = TRUE)
+head(candy)
+colMeans(candy[,-1])
+candy = candy[,-1]
+```
+
+Kiểm tra tính chuẩn bằng đồ thị QQ-plot (trực quan - vẫn nên dùng kđ shapiro.test)
+
+```{r}
+#install.packages("car")
+library(car)
+sapply(colnames(candy), function(x) {qqPlot(candy[[x]])})
+```
+
+```{r}
+sapply(colnames(candy), function(x) {shapiro.test(candy[[x]])})
+```
+
+Nếu p-value \< mức ý nghĩa thì là không có phân bố chuẩn một chiều.
+
+```{r Tính khoảng cách Mahalanois}
+mah <- mahalanobis(candy, colMeans(candy), var(candy))
+mah
+```
+
+Do dữ liệu có 6 cột nên ta sẽ so sánh các khoảng cách Mahalanobis đã sắp xếp với phân phối khi bình phương $\mathcal{X}^2$ với 6 bậc tự do.
+
+```{r}
+#Sắp xếp các khoảng cách Mahalanobis
+sort(mah)
+#QQ-plot về khoảng cách Mahalanobis của dữ liệu
+qqplot(qchisq((1:nrow(candy) - 1/2) / nrow(candy), df = 6), sort(mah))
+abline(a = 0, b = 1, col = "red")
+```
+
+Một cách trực quan, từ biểu đồ này, ta có thể thấy rằng dường như các giá trị dữ liệu tuân theo phân phối chuẩn nhiều chiều.
+
+Ta có thể kiểm tra tính chuẩn của dữ liệu bằng cách chuyển khoảng cách Mahalanobis từ các giá trị khi bình phương thành các phân vị chuẩn.
+
+```{r}
+shapiro.test(qnorm(pchisq(mah,6)))
+```
+
+Hàm pchisq chuyển đổi các khoảng cách Mahalanobis (mah) thành các giá trị p-value từ phân phối $\mathcal{X}^2$ tham chiếu. Sau đó qnorm biến đổi p-value thành phân vị chuẩn cần thiết để kiểm định Shapiro-Wilk. Giá trị p-value \> 0.05 cho thấy rằng dữ liệu có phân phối chuẩn nhiều chiều, nhưng đây không phải là một kiểm định chính thức cho tính chuẩn đa chiều.
+
+Cách khác, ta dùng gói lệnh mvtnormtest (nên sử dụng cách này)
+
+```{r}
+#install.packages("mvnormtest")
+library(mvnormtest)
+mshapiro.test(t(candy))
+```
+
+mshapiro cần dữ liệu được sắp xếp thành các biến theo hàng và các quan sát theo cột nên ta chuyển vị ma trận dữ liệu bằng hàm t().
+
+Giá trị p-value rất nhỏ cho thấy dữ liệu không có phân phối chuẩn nhiều chiều.
+
+### 7. Phân bố student - t nhiều chiều
+
+### 8. Phân bố Skewed nhiều chiều
+
+### 9. PCA
+
+## B. Ước lượng
+
+### 1.  Ước lượng điểm bởi phương pháp MLE
+
+```{r}
+# Load necessary libraries
+library(ggplot2)
+
+# Generate synthetic data from an exponential distribution
+set.seed(123)
+data <- rexp(100, rate = 0.1)
+
+# Likelihood function for the exponential distribution
+log_likelihood <- function(lambda) {
+  sum(dexp(data, rate = lambda, log = TRUE))
+}
+
+# Maximum Likelihood Estimation using optim
+result <- optim(par = 0.1, log_likelihood, method = "Brent", lower = 0.001, upper = 10)
+mle_lambda <- result$par
+
+# Print the MLE estimate
+cat("Maximum Likelihood Estimate for Lambda:", mle_lambda, "\n")
+```
+
+```{r}
+# Plot the histogram of the data with the estimated lambda
+ggplot(data = NULL, aes(x = data)) +
+  geom_histogram(bins = 15, fill = "skyblue", color = "black", alpha = 0.7) +
+  geom_vline(xintercept = mle_lambda, color = "red", linetype = "dashed") +
+  annotate("text", x = mle_lambda + 0.1, y = 10, 
+           label = paste("MLE Lambda:", round(mle_lambda, 2)), color = "red") +
+  labs(title = "Histogram with Estimated Lambda", x = "Time", y = "Frequency")
+```
+
+Sử dụng hàm optimize để ước lượng MLE.
+
+```{r}
+x <- mtcars$am
+L <- function(p,x) prod(dbinom(x, size = 1, prob = p))
+optimize(L, interval = c(0,1), x = x, maximum = TRUE)
+```
+
+```{r}
+minuslogL <- function(p,x){
+-sum(dbinom(x, size = 1, prob = p, log = TRUE))
+}
+optimize(minuslogL, interval = c(0,1), x = x)
+```
+
+Sử dụng hàm mle có sẵn.
+
+```{r}
+library(stats4)
+
+x <- PlantGrowth$weight
+
+minuslogL <- function(mu, sigma2) {
+  -sum(dnorm(x, mean = mu, sd = sqrt(sigma2), log = TRUE))
+}
+
+MaxLikeEst <- mle(minuslogL, start = list(mu = 5, sigma2 = 0.5))
+MaxLikeEst
+```
+
+```{r}
+summary(MaxLikeEst)
+```
+
+```{r}
+mean(x); var(x)*29/30; sd(x)/sqrt(30)
+```
+
+### 2. Ước lượng khoảng tin cậy
+
+Giả sử $X$ có phân bố chuẩn, hãy xây dựng khoảng tin cậy cho các tham số dựa theo các hàm có sẵn trong R của phân bố chuẩn.
+
+### 3. Ước lượng điểm bởi phương pháp moment
+
+```{r}
+data(airquality)
+x <- na.omit(airquality$Ozone)
+length(x)
+```
+
+```{r}
+m1 <- mean(x)
+m2 <- var(x)
+```
+
+```{r Giair hệ phương trình MOM}
+alpha_mom <- m1^2 / m2
+beta_mom  <- m1 / m2
+
+alpha_mom
+beta_mom
+```
+
+```{r So sánh với MLE}
+fit_mle <- MASS::fitdistr(x, "gamma")
+
+fit_mle$estimate
+```
+
+```{r}
+library(ggplot2)
+ggplot(data.frame(x = x), aes(x)) +
+  geom_histogram(aes(y = after_stat(density)),
+                 bins = 25,
+                 fill = "grey80",
+                 color = "white") +
+  stat_function(
+    fun = dgamma,
+    args = list(shape = alpha_mom, rate = beta_mom),
+    color = "red",
+    linewidth = 1.2
+  ) +
+  labs(
+    title = "Ước lượng tham số bằng phương pháp moment (Gamma)",
+    subtitle = paste0("alpha = ", round(alpha_mom, 2),
+                      ", beta = ", round(beta_mom, 3)),
+    x = "Ozone",
+    y = "Mật độ"
+  ) +
+  theme_minimal()
+```
+
+### 4. Ước lượng điểm bởi phương pháp bình phương tối thiểu
+
+```{r}
+library(ggplot2)
+
+data(airquality)
+x <- na.omit(airquality$Ozone)
+```
+
+```{r}
+dens_emp <- density(x)
+
+x_grid <- dens_emp$x
+f_emp  <- dens_emp$y
+```
+
+```{r}
+LS_gamma <- function(par) {
+  shape <- par[1]
+  rate  <- par[2]
+  
+  if (shape <= 0 || rate <= 0) return(Inf)
+  
+  f_theo <- dgamma(x_grid, shape = shape, rate = rate)
+  sum((f_emp - f_theo)^2)
+}
+```
+
+```{r}
+opt_ls <- optim(
+  par = c(5, 0.1),
+  fn = LS_gamma,
+  method = "L-BFGS-B",
+  lower = c(1e-6, 1e-6)
+)
+
+shape_ls <- opt_ls$par[1]
+rate_ls  <- opt_ls$par[2]
+```
+
+```{r}
+ggplot(data.frame(x = x), aes(x)) +
+  geom_histogram(aes(y = after_stat(density)),
+                 bins = 25,
+                 fill = "grey85",
+                 color = "white") +
+  geom_line(
+    data = data.frame(x = x_grid, y = f_emp),
+    aes(x, y),
+    color = "black",
+    linewidth = 1
+  ) +
+  stat_function(
+    fun = dgamma,
+    args = list(shape = shape_ls, rate = rate_ls),
+    color = "red",
+    linewidth = 1.2
+  ) +
+  labs(
+    title = "Ước lượng tham số bằng phương pháp bình phương tối thiểu",
+    subtitle = paste0("Gamma: shape = ", round(shape_ls,2),
+                      ", rate = ", round(rate_ls,3)),
+    x = "Ozone",
+    y = "Mật độ"
+  ) +
+  theme_minimal()
+```
+
+```{r So sánh LSE-MOM-MSE}
+library(MASS)
+
+# MOM
+m1 <- mean(x); m2 <- var(x)
+shape_mom <- m1^2 / m2
+rate_mom  <- m1 / m2
+
+# MLE
+fit_mle <- fitdistr(x, "gamma")
+
+ggplot(data.frame(x = x), aes(x)) +
+  geom_histogram(aes(y = after_stat(density)),
+                 bins = 25,
+                 fill = "grey90",
+                 color = "white") +
+  stat_function(fun = dgamma,
+                args = list(shape = shape_mom, rate = rate_mom),
+                color = "blue", linewidth = 1) +
+  stat_function(fun = dgamma,
+                args = list(shape = shape_ls, rate = rate_ls),
+                color = "red", linewidth = 1) +
+  stat_function(fun = dgamma,
+                args = list(shape = fit_mle$estimate["shape"],
+                            rate  = fit_mle$estimate["rate"]),
+                color = "darkgreen",
+                linetype = "dashed",
+                linewidth = 1) +
+  labs(
+    title = "So sánh MOM – LS – MLE (Gamma)",
+    subtitle = "Blue: MOM | Red: LS | Green dashed: MLE"
+  ) +
+  theme_minimal()
+
+```
+
+### 5. Ước lượng vững
+
+### 6. Ước lượng hiệu quả
+
+### 
